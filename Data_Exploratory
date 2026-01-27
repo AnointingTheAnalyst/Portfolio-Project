@@ -1,0 +1,65 @@
+CREATE TABLE data_sciences_workbench (work_year INT, 
+job_title TEXT, 
+job_category TEXT, 
+salary_currency TEXT, 
+salary INT, salary_in_usd INT, 
+employee_residence TEXT, 
+experience_level TEXT,
+employment_type TEXT,
+work_setting TEXT,
+company TEXT,
+company_size TEXT
+);
+
+SELECT *
+FROM data_sciences_workbench;
+
+WITH company_loc AS 
+	(SELECT company, job_title, COUNT(*) AS avg_job_count, ROUND(AVG(salary_in_usd), 2) AS avg_salary
+	FROM data_sciences_workbench
+	WHERE company != 'United States'
+	GROUP BY 1,2
+	ORDER BY 2 DESC)
+SELECT  *
+FROM company_loc;
+
+SELECT job_title, company, salary_in_usd
+FROM data_sciences_workbench
+WHERE company = 'spain';
+
+SELECT work_year, experience_level, avg(salary_in_usd)
+FROM data_sciences_workbench
+GROUP BY 1, 2 
+ORDER BY 3 DESC;
+
+SELECT work_setting, COUNT(*) AS job_count, ROUND(AVG(salary_in_usd), 2) AS Average_Salary
+FROM data_sciences_workbench
+GROUP BY 1;
+
+SELECT 
+    job_title, 
+    ROUND(AVG(salary_in_usd), 2) as avg_salary
+FROM data_sciences_workbench
+WHERE 
+    experience_level = 'Entry-level' 
+    AND job_title IN ('Data Scientist', 'Data Analyst', 'Data Engineer')
+GROUP BY job_title
+ORDER BY avg_salary DESC;
+
+SELECT 
+    company, 
+    COUNT(*) as job_count,
+    ROUND(AVG(salary_in_usd), 2) as avg_salary
+FROM data_sciences_workbench
+WHERE 
+    experience_level = 'Mid-level' 
+    AND company != 'United States' -- Exclude the US
+GROUP BY company
+ORDER BY job_count DESC -- We want places with lots of candidates
+LIMIT 3;
+
+SELECT job_title, job_category, MAX(salary_in_usd)
+FROM data_sciences_workbench
+GROUP BY 1,2
+ORDER BY 3 DESC
+LIMIT 10;
