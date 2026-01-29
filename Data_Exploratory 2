@@ -1,0 +1,101 @@
+CREATE TABLE Medical_Condition (Age INT, Sex INT, Chest_pain_type INT, blood_pressure INT, Cholesterol INT, FBS_over_120 INT, EKG_results INT, Max_HR INT, Exercise_angina INT, 
+ST_depression DECIMAL(5,3), Slope_of_S INT, Number_of_vessels_fluro INT, Thallium INT, Heart_Disease TEXT);
+
+SELECT *
+FROM medical_condition;
+
+ALTER TABLE medical_condition
+MODIFY sex TEXT;
+
+UPDATE medical_condition
+SET sex = CASE
+    WHEN sex = '1' THEN 'Male'
+    WHEN sex = '0' THEN 'Female'
+    ELSE sex
+END;
+
+SELECT  sex, avg(age) 
+FROM medical_condition
+WHERE blood_pressure > 130 AND Cholesterol > 240 AND Heart_Disease = 'Presence'
+GROUP BY 1
+;
+
+WITH base AS (
+    SELECT *
+    FROM medical_condition
+    WHERE Age BETWEEN 50 AND 59
+)
+SELECT 
+    SUM(CASE WHEN Heart_Disease = 'Presence' THEN 1 ELSE 0 END) AS presence_count,
+    SUM(CASE WHEN Heart_Disease = 'Absence'  THEN 1 ELSE 0 END) AS absence_count
+FROM base;
+
+SELECT AVG(Cholesterol)
+FROM medical_condition
+WHERE Age BETWEEN 50 AND 59
+  AND Heart_Disease = 'Presence';
+
+SELECT AVG(Cholesterol)
+FROM medical_condition
+WHERE Age BETWEEN 50 AND 59
+  AND Heart_Disease = 'Absence';
+
+SELECT 
+    Chest_pain_type,
+    COUNT(*) as total_patients,
+    SUM(CASE WHEN Heart_Disease = 'Presence' THEN 1 ELSE 0 END) as sick_patients,
+    -- Calculate the percentage
+    ROUND(SUM(CASE WHEN Heart_Disease = 'Presence' THEN 1 ELSE 0 END) / COUNT(*) * 100, 1) as risk_percentage
+FROM medical_condition
+GROUP BY 1
+ORDER BY risk_percentage DESC;
+
+SELECT *
+FROM medical_condition;
+
+SELECT COUNT(*)
+	FROM medical_condition
+	WHERE blood_pressure > 130 AND Cholesterol > 240;
+	
+SELECT age, sex, blood_pressure, cholesterol, Heart_Disease
+FROM medical_condition
+WHERE blood_pressure > 130 AND Cholesterol > 240
+HAVING Heart_Disease = 'Presence';
+
+SELECT sex, COUNT(Heart_Disease) AS medical_count
+FROM(
+	SELECT age, sex, blood_pressure, cholesterol, Heart_Disease
+	FROM medical_condition
+	WHERE blood_pressure > 130 AND Cholesterol > 240
+	HAVING Heart_Disease = 'Presence')  sub
+GROUP BY 1;
+
+SELECT  COUNT(Heart_Disease) AS medical_count
+FROM(
+	SELECT age, sex, blood_pressure, cholesterol, Heart_Disease
+	FROM medical_condition
+	WHERE blood_pressure > 130 AND Cholesterol > 240
+	HAVING Heart_Disease = 'Absence') sub;
+   
+WITH base AS (
+    SELECT
+        Exercise_angina,
+        Heart_Disease
+    FROM medical_condition
+    WHERE Exercise_angina = '1'
+)
+SELECT
+    SUM(CASE WHEN Heart_Disease = 'Presence' THEN 1 ELSE 0 END) AS presence_count,
+    SUM(CASE WHEN Heart_Disease = 'Absence'  THEN 1 ELSE 0 END) AS absence_count
+FROM base;
+
+SELECT 
+    Exercise_angina,
+    COUNT(*) as total_patients,
+    SUM(CASE WHEN Heart_Disease = 'Presence' THEN 1 ELSE 0 END) as sick_patients,
+    ROUND(SUM(CASE WHEN Heart_Disease = 'Presence' THEN 1 ELSE 0 END) / COUNT(*) * 100, 1) as risk_percentage,
+    ROUND(AVG( Max_HR), 0) as avg_max_heart_rate
+FROM medical_condition
+GROUP BY Exercise_angina;
+
+
