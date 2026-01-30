@@ -1,0 +1,128 @@
+CREATE TABLE NashvilleHousing (
+    UniqueID_1 INT,
+	UniqueID_2 INT,
+    ParcelID VARCHAR(50),
+    LandUse VARCHAR(100),
+    PropertyAddress VARCHAR(255),
+    SuiteCondoNum VARCHAR(50), -- Originally 'Suite/ Condo   #'
+    PropertyCity VARCHAR(100),
+    SaleDate DATE,
+    SalePrice INT,
+    LegalReference VARCHAR(50),
+    SoldAsVacant VARCHAR(10),
+    MultipleParcelsInvolvedInSale VARCHAR(10),
+    OwnerName VARCHAR(255),
+    Address VARCHAR(255),
+    City VARCHAR(100),
+    State VARCHAR(50),
+    Acreage DECIMAL(10,2),
+    TaxDistrict VARCHAR(100),
+    Neighborhood INT,
+    Image VARCHAR(255),
+    LandValue INT,
+    BuildingValue INT,
+    TotalValue INT,
+    FinishedArea DECIMAL(10,2),
+    FoundationType VARCHAR(100),
+    YearBuilt INT,
+    ExteriorWall VARCHAR(100),
+    Grade VARCHAR(50),
+    Bedrooms INT,
+    FullBath INT,
+    HalfBath INT
+);
+
+SELECT * 
+FROM nashvillehousing;
+
+-- First thing i did was to check for duplicate(The basic step in cleaning my data)
+
+-- Check for duplicate ParcelIDs
+SELECT parcelid, COUNT(*)
+FROM nashvillehousing
+GROUP BY parcelid
+HAVING COUNT(*) > 1;
+
+-- Next thing i did was to check if i could populate rows that have the same id's
+
+-- Populate Property Address Data
+UPDATE nashvillehousing t1
+SET propertyaddress = t2.propertyaddress
+FROM nashvillehousing t2
+WHERE t1.parcelid = t2.parcelid 
+  AND t1.uniqueid_1 <> t2.uniqueid_1 -- strict inequality to avoid self-match
+  AND t1.propertyaddress IS NULL
+  AND t2.propertyaddress IS NOT NULL;
+
+-- I checked weather those null roles had values to see if i could populate them 
+SELECT 
+    COUNT(*) FILTER (WHERE propertyaddress IS NULL) as real_nulls,
+    COUNT(*) FILTER (WHERE propertyaddress = '') as empty_strings
+FROM nashvillehousing;
+
+SELECT t1.parcelid, t1.propertyaddress, t2.propertyaddress
+FROM nashvillehousing t1
+JOIN nashvillehousing t2 ON t1.parcelid = t2.parcelid 
+  AND t1.uniqueid_1 != t2.uniqueid_1
+WHERE (t1.propertyaddress IS NULL OR t1.propertyaddress = '') -- Checks both
+  AND (t2.propertyaddress IS NOT NULL AND t2.propertyaddress <> ''); -- Checks if help exists
+
+-- After i found out that those roles don't have values,s it'll be impossible to populate them. Next i deleted them.
+
+DELETE FROM nashvillehousing
+WHERE propertyaddress IS NULL;
+
+-- 	Next i want to standardize the rows that have certain values to suit the data
+-- First, verify what weird values exist
+SELECT DISTINCT(soldasvacant), COUNT(soldasvacant)
+FROM nashvillehousing
+GROUP BY soldasvacant;
+
+-- Turns out i didn't need to fix them, but paradventure i needed to, i'd have used this code.
+UPDATE nashville_housing
+SET sold_as_vacant = CASE 
+       WHEN sold_as_vacant = 'Y' THEN 'Yes'
+       WHEN sold_as_vacant = 'N' THEN 'No'
+       ELSE sold_as_vacant
+       END;
+-- I also delved down into rows with duplicates
+
+SELECT *
+FROM (
+	SELECT uniqueid_1, ROW_NUMBER() OVER(PARTITION BY parcelid, 
+                         propertyaddress, 
+                         saleprice, 
+                         saledate, 
+                         legalreference) AS row_num
+FROM nashvillehousing)
+WHERE row_num > 1;
+
+
+DELETE FROM nashvillehousing
+WHERE uniqueid_1 IN (
+    SELECT uniqueid_1
+    FROM (
+        SELECT uniqueid_1,
+        ROW_NUMBER() OVER (
+            PARTITION BY parcelid, 
+                         propertyaddress, 
+                         saleprice, 
+                         saledate, 
+                         legalreference
+            ORDER BY uniqueid_1
+        ) as row_num
+        FROM nashvillehousing
+    ) t
+    WHERE row_num > 1
+);
+
+SELECT *
+FROM nashvillehousing;
+
+UPDATE nashvillehousing
+SET address = propertyaddress
+WHERE address IS NULL
+  AND propertyaddress IS NOT NULL;
+
+UPDATE nashvillehousing
+SET image = '';
